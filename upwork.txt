@@ -2,6 +2,7 @@
 Library           Selenium2Library
 Library           String
 Library           Collections
+Library           Email.py
 
 *** Variables ***
 ${time_out}       15s
