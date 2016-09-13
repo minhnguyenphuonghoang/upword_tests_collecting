@@ -2,24 +2,36 @@
 Library           Selenium2Library
 Library           String
 Library           Collections
-Library           Email.py
+Resource          Data_Interaction.txt
 
 *** Variables ***
-${time_out}       15s
+${time_out}       30s
 
 *** Test Cases ***
 collecting data
-    @{accounts}=    Create List    automationguru3/AutomationGuru3
-    @{test_sites}=    Create List    https://www.upwork.com/tests/981
-    Comment    This is comment for @test_sites variable    Python
-    :FOR    ${an_account}    IN    @{accounts}
+    @{accounts}=    Create List    josh_acapelan/1qazxsw2    automationguru3/AutomationGuru3
+    ${test_sites}=    Create List    https://www.upwork.com/tests/981
+    ${test_names}=    Create List    Python
+    ${index}=    Set Variable    0
+    : FOR    ${an_account}    IN    @{accounts}
     \    ${username}    ${password}    Split String    ${an_account}    /
     \    Login    ${username}    ${password}
-    \    goto test site and start collecting test resources    https://www.upwork.com/tests/981
+    \    goto test site and start collecting test resources    ${test_sites[${index}]}    ${test_names[${index}]}
+    \    ${index}=    Evaluate    ${index} + 1
     [Teardown]    Close All Browsers
 
 test2
-    ${a}    ${b}    test
+    @{accounts}=    Create List    automationguru3/AutomationGuru3
+    ${test_sites}=    Create List    https://www.upwork.com/tests/981
+    ${test_names}=    Create List    Python
+    ${index}=    Evaluate    0
+    :FOR    ${an_account}    IN    @{accounts}
+    \    ${username}    ${password}    Split String    ${an_account}    /
+    \    Comment    Login    ${username}    ${password}
+    \    Comment    goto test site and start collecting test resources    ${test_sites[${index}]}    ${test_name[${index}]}
+    \    Log    ${test_sites[${index}]}
+    \    Log    ${test_names[${index}]}
+    \    ${index}=    Evaluate    ${index} + 1
 
 *** Keywords ***
 Login
@@ -32,10 +44,10 @@ Login
     Input Text    //input[@id="login_password"]    ${password}
     Wait Until Page Contains Element    //form[@name="login"]/div[3]//button[contains(text(),"Log In")]    ${time_out}
     Click Element    //form[@name="login"]/div[3]//button[contains(text(),"Log In")]
-    Wait Until Page Does Not Contain Element    //form[@name="login"]/div[3]//button[contains(text(),"Log In")]    30s
+    Wait Until Page Does Not Contain Element    //input[@id="login_username"]    30s
 
 goto test site and start collecting test resources
-    [Arguments]    ${test_site_url}
+    [Arguments]    ${test_site_url}    ${upwork_test_name}
     Go To    ${test_site_url}
     Wait Until Page Contains Element    //a[contains(text(),"Start Test")]    ${time_out}
     Click Element    //a[contains(text(),"Start Test")]
@@ -46,11 +58,15 @@ goto test site and start collecting test resources
     Sleep    5s
     ${first}    ${last}    get question number
     ${current_question_no}=    Set Variable    0
-    :FOR    ${index}    IN RANGE    ${first}    ${last}
+    : FOR    ${index}    IN RANGE    ${first}    ${last}
     \    check next question is appeared    ${current_question_no}
     \    ${current_question_no}    ${temp}    get question number
     \    ${question}=    get question text
-    \    ${answers}=    get answer text
+    \    ${result}=    Is Question Exist    ${path_to_dat_file}    ${upwork_test_name}    ${question}
+    \    Continue For Loop If    ${result}==True
+    \    @{answers}=    get answer text
+    \    ${latest_row}=    Write Test Data By Sheet Name In Latest Row    ${path_to_dat_file}    ${upwork_test_name}    A    ${question}
+    \    Write Answers    ${upwork_test_name}    ${latest_row}    @{answers}
     \    Click Element    //div[@id="answerOptions"]/div[1]
     \    Wait Until Page Contains Element    //div[@id="continue"]    ${time_out}
     \    Click Element    //div[@id="continue"]
@@ -64,15 +80,15 @@ get answer text
     Wait Until Page Contains Element    //div[@id="answerOptions"]/div    ${time_out}
     ${no_of_answers}=    Get Matching Xpath Count    //div[@id="answerOptions"]/div
     ${no_of_answers}=    Evaluate    ${no_of_answers} + 1
-    ${answer}=    Create List
-    :FOR    ${index}    IN RANGE    1    ${no_of_answers}
+    @{answer}=    Create List
+    : FOR    ${index}    IN RANGE    1    ${no_of_answers}
     \    ${temp}=    Get Text    //div[@id="answerOptions"]/div[${index}]
-    \    Append To List    ${answer}    ${temp}
-    [Return]    ${answer}
+    \    Append To List    @{answer}    ${temp}
+    [Return]    @{answer}
 
 check next question is appeared
     [Arguments]    ${current_question}
-    :FOR    ${index}    IN RANGE    50
+    : FOR    ${index}    IN RANGE    50
     \    ${temp001}    ${temp002}    get question number
     \    ${result}=    Run Keyword And Return Status    Should Not Be Equal    ${temp001}    ${current_question}
     \    Exit For Loop If    ${result}==True
