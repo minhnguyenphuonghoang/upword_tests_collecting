@@ -25,10 +25,9 @@ Get Data From Excel File
     [Return]    ${s_data}
 
 Write Answers
-    [Arguments]    ${sheet_name}    ${row}    @{answers}
+    [Arguments]    ${sheet_name}    ${row}    ${answers}
     ${temp_list}=    Create List    B    C    D    E    F
     ...    G    H
-    ${temp_index}=    Set Variable    0
-    : FOR    ${an_answer}    IN    @{answers}
-    \    Write Test Data By Sheet Name    ${path_to_dat_file}    ${sheet_name}    ${temp_list[${temp_index}]}    ${row}    ${an_answer}
-    \    ${temp_index}=    Evaluate    ${temp_index} + 1
+    ${length}=    Get Length    ${answers}
+    :FOR    ${index}    IN RANGE    ${length}
+    \    Write Test Data By Sheet Name    ${path_to_dat_file}    ${sheet_name}    ${temp_list[${index}]}    ${row}    ${answers[${index}]}

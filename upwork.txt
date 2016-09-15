@@ -6,18 +6,20 @@ Resource          Data_Interaction.txt
 
 *** Variables ***
 ${time_out}       30s
+${correct_answer_column}    I
 
 *** Test Cases ***
 collecting data
-    @{accounts}=    Create List    josh_acapelan/1qazxsw2    automationguru3/AutomationGuru3
+    Comment    temp account    joetoetoe1/FS@123456    joetoetoe/FS@123456    josh_acapelan/1qazxsw2    automationguru3/AutomationGuru3
+    @{accounts}=    Create List    joetoetoe4/FS@123456    joetoetoe5/FS@123456    joetoetoe6/FS@123456    joetoetoe8/FS@123456    joetoetoe9/FS@123456
     ${test_sites}=    Create List    https://www.upwork.com/tests/981
-    ${test_names}=    Create List    Python
+    ${test_names}=    Create List    Python    joetoetoe2/FS@123456    joetoetoe3/FS@123456
     ${index}=    Set Variable    0
     : FOR    ${an_account}    IN    @{accounts}
     \    ${username}    ${password}    Split String    ${an_account}    /
     \    Login    ${username}    ${password}
-    \    goto test site and start collecting test resources    ${test_sites[${index}]}    ${test_names[${index}]}
-    \    ${index}=    Evaluate    ${index} + 1
+    \    Run Keyword And Ignore Error    goto test site and start collecting test resources    ${test_sites[${index}]}    ${test_names[${index}]}
+    \    Close All Browsers
     [Teardown]    Close All Browsers
 
 test2
@@ -25,13 +27,19 @@ test2
     ${test_sites}=    Create List    https://www.upwork.com/tests/981
     ${test_names}=    Create List    Python
     ${index}=    Evaluate    0
-    :FOR    ${an_account}    IN    @{accounts}
+    : FOR    ${an_account}    IN    @{accounts}
     \    ${username}    ${password}    Split String    ${an_account}    /
     \    Comment    Login    ${username}    ${password}
     \    Comment    goto test site and start collecting test resources    ${test_sites[${index}]}    ${test_name[${index}]}
     \    Log    ${test_sites[${index}]}
     \    Log    ${test_names[${index}]}
     \    ${index}=    Evaluate    ${index} + 1
+
+test3
+    ${answer}=    Create List
+    :FOR    ${index}    IN RANGE    5
+    \    Append To List    ${answer}    ${index}
+    Write Answers    Python    2    ${answer}
 
 *** Keywords ***
 Login
@@ -42,8 +50,7 @@ Login
     Input Text    //input[@id="login_username"]    ${username}
     Wait Until Page Contains Element    //input[@id="login_password"]    ${time_out}
     Input Text    //input[@id="login_password"]    ${password}
-    Wait Until Page Contains Element    //form[@name="login"]/div[3]//button[contains(text(),"Log In")]    ${time_out}
-    Click Element    //form[@name="login"]/div[3]//button[contains(text(),"Log In")]
+    Run Keyword And Ignore Error    Click Element    //form[@name="login"]/div[3]//button[contains(text(),"Log In")]
     Wait Until Page Does Not Contain Element    //input[@id="login_username"]    30s
 
 goto test site and start collecting test resources
@@ -63,11 +70,12 @@ goto test site and start collecting test resources
     \    ${current_question_no}    ${temp}    get question number
     \    ${question}=    get question text
     \    ${result}=    Is Question Exist    ${path_to_dat_file}    ${upwork_test_name}    ${question}
+    \    Run Keyword If    ${result}==True    get the correct answer if the question is existed    ${question}
     \    Continue For Loop If    ${result}==True
-    \    @{answers}=    get answer text
+    \    ${answers}=    get answer text
     \    ${latest_row}=    Write Test Data By Sheet Name In Latest Row    ${path_to_dat_file}    ${upwork_test_name}    A    ${question}
-    \    Write Answers    ${upwork_test_name}    ${latest_row}    @{answers}
-    \    Click Element    //div[@id="answerOptions"]/div[1]
+    \    Write Answers    ${upwork_test_name}    ${latest_row}    ${answers}
+    \    select random answer
     \    Wait Until Page Contains Element    //div[@id="continue"]    ${time_out}
     \    Click Element    //div[@id="continue"]
 
@@ -80,11 +88,11 @@ get answer text
     Wait Until Page Contains Element    //div[@id="answerOptions"]/div    ${time_out}
     ${no_of_answers}=    Get Matching Xpath Count    //div[@id="answerOptions"]/div
     ${no_of_answers}=    Evaluate    ${no_of_answers} + 1
-    @{answer}=    Create List
+    ${answer}=    Create List
     : FOR    ${index}    IN RANGE    1    ${no_of_answers}
     \    ${temp}=    Get Text    //div[@id="answerOptions"]/div[${index}]
-    \    Append To List    @{answer}    ${temp}
-    [Return]    @{answer}
+    \    Append To List    ${answer}    ${temp}
+    [Return]    ${answer}
 
 check next question is appeared
     [Arguments]    ${current_question}
@@ -102,3 +110,17 @@ get question number
     ${first}=    Convert To Number    ${first}
     ${last}=    Evaluate    ${last} + 1
     [Return]    ${first}    ${last}
+
+get the correct answer if the question is existed
+    [Arguments]    ${question}
+    Comment    Click Element    //div[@id="answerOptions"]/div[1]
+    Comment    Wait Until Page Contains Element    //div[@id="continue"]    ${time_out}
+    Comment    Click Element    //div[@id="continue"]
+    select random answer
+    Wait Until Page Contains Element    //div[@id="continue"]    ${time_out}
+    Click Element    //div[@id="continue"]
+
+select random answer
+    ${no_of_answers}=    Get Matching Xpath Count    //div[@id="answerOptions"]/div
+    ${answer}=    Evaluate    random.randint(1,${no_of_answers})    random
+    Click Element    //div[@id="answerOptions"]/div[${answer}]
