@@ -11,14 +11,14 @@ ${correct_answer_column}    I
 *** Test Cases ***
 collecting data
     Comment    temp account    joetoetoe1/FS@123456    joetoetoe/FS@123456    josh_acapelan/1qazxsw2    automationguru3/AutomationGuru3
-    @{accounts}=    Create List    joetoetoe4/FS@123456    joetoetoe5/FS@123456    joetoetoe6/FS@123456    joetoetoe8/FS@123456    joetoetoe9/FS@123456
-    ${test_sites}=    Create List    https://www.upwork.com/tests/981
-    ${test_names}=    Create List    Python    joetoetoe2/FS@123456    joetoetoe3/FS@123456
+    @{accounts}=    Create List    joetoetoe/FS@123456    joetoetoe4/FS@123456    joetoetoe5/FS@123456    joetoetoe6/FS@123456    joetoetoe8/FS@123456
+    ${test_sites}=    Create List    https://www.upwork.com/tests/566    https://www.upwork.com/tests/513    https://www.upwork.com/tests/980    https://www.upwork.com/tests/982    https://www.upwork.com/tests/981
+    ${test_names}=    Create List    Software Testing Test    Enterprise Java Beans (EJB) 2.0    Java Test v3    Java Script    Python
     ${index}=    Set Variable    0
     : FOR    ${an_account}    IN    @{accounts}
     \    ${username}    ${password}    Split String    ${an_account}    /
     \    Login    ${username}    ${password}
-    \    Run Keyword And Ignore Error    goto test site and start collecting test resources    ${test_sites[${index}]}    ${test_names[${index}]}
+    \    Run Keyword And Ignore Error    Start Collecting Test Resources    ${test_sites[${index}]}    ${test_names[${index}]}    ${False}
     \    Close All Browsers
     [Teardown]    Close All Browsers
 
@@ -37,7 +37,7 @@ test2
 
 test3
     ${answer}=    Create List
-    :FOR    ${index}    IN RANGE    5
+    : FOR    ${index}    IN RANGE    5
     \    Append To List    ${answer}    ${index}
     Write Answers    Python    2    ${answer}
 
@@ -121,6 +121,81 @@ get the correct answer if the question is existed
     Click Element    //div[@id="continue"]
 
 select random answer
-    ${no_of_answers}=    Get Matching Xpath Count    //div[@id="answerOptions"]/div
-    ${answer}=    Evaluate    random.randint(1,${no_of_answers})    random
-    Click Element    //div[@id="answerOptions"]/div[${answer}]
+    Comment    ${no_of_answers}=    Get Matching Xpath Count    //div[@id="answerOptions"]/div
+    Comment    ${answer}=    Evaluate    random.randint(1,${no_of_answers})    random
+    Comment    Click Element    //div[@id="answerOptions"]/div[${answer}]
+    Click Element    //div[@id="answerOptions"]/div[2]
+
+goto test site and start collecting test resources_old style
+    [Arguments]    ${test_site_url}    ${upwork_test_name}
+    Go To    ${test_site_url}
+    Wait Until Page Contains Element    //a[contains(text(),"Start Test")]    ${time_out}
+    Click Element    //a[contains(text(),"Start Test")]
+    Wait Until Page Contains Element    //input[@value="Start Test"]    ${time_out}
+    Click Element    //input[@value="Start Test"]
+    Wait Until Page Contains Element    //table[@class="maintable"]    30s
+    Sleep    5s
+    ${first}    ${last}    get question number_oldStyle
+    ${current_question_no}=    Set Variable    0
+    :FOR    ${index}    IN RANGE    ${first}    ${last}
+    \    check next question is appeared_oldStyle    ${current_question_no}
+    \    ${current_question_no}    ${temp}    get question number_oldStyle
+    \    ${question}=    get question text_oldStyle
+    \    ${result}=    Is Question Exist    ${path_to_dat_file}    ${upwork_test_name}    ${question}
+    \    Run Keyword If    ${result}==True    get the correct answer if the question is existed_oldStyle    ${question}
+    \    Continue For Loop If    ${result}==True
+    \    ${answers}=    get answer text_oldStyle
+    \    ${latest_row}=    Write Test Data By Sheet Name In Latest Row    ${path_to_dat_file}    ${upwork_test_name}    A    ${question}
+    \    Write Answers    ${upwork_test_name}    ${latest_row}    ${answers}
+    \    select random answer_oldStyle
+    \    Wait Until Page Contains Element    //input[@id="btnnext"]    ${time_out}
+    \    Click Element    //input[@id="btnnext"]
+
+get question text_oldStyle
+    Wait Until Page Contains Element    //table[@class="maintable"]/tbody/tr[2]/td[1]/table[1]    ${time_out}
+    ${question_text}=    Get Text    //table[@class="maintable"]/tbody/tr[2]/td[1]/table[1]
+    [Return]    ${question_text}
+
+check next question is appeared_oldStyle
+    [Arguments]    ${current_question}
+    :FOR    ${index}    IN RANGE    50
+    \    ${temp001}    ${temp002}    get question number_oldStyle
+    \    ${result}=    Run Keyword And Return Status    Should Not Be Equal    ${temp001}    ${current_question}
+    \    Exit For Loop If    ${result}==True
+    \    Sleep    2s
+
+get question number_oldStyle
+    Wait Until Page Contains Element    //table[@class="maintable"]/tbody/tr[1]/td[1]/center/div[3]    ${time_out}
+    ${questions}=    Get Text    //table[@class="maintable"]/tbody/tr[1]/td[1]/center/div[3]
+    ${first}    ${last}    Split String    ${questions}    ${SPACE}of${SPACE}
+    ${first}=    Remove String    ${first}    Question${SPACE}
+    ${first}=    Convert To Number    ${first}
+    ${last}=    Evaluate    ${last} + 1
+    [Return]    ${first}    ${last}
+
+get answer text_oldStyle
+    Wait Until Page Contains Element    //table[@class="maintable"]/tbody/tr[2]/td/table[2]/tbody/tr    ${time_out}
+    ${no_of_answers}=    Get Matching Xpath Count    //table[@class="maintable"]/tbody/tr[2]/td/table[2]/tbody/tr
+    ${no_of_answers}=    Evaluate    ${no_of_answers} + 1
+    ${answer}=    Create List
+    :FOR    ${index}    IN RANGE    1    ${no_of_answers}
+    \    ${temp}=    Get Text    //table[@class="maintable"]/tbody/tr[2]/td/table[2]/tbody/tr[${index}]
+    \    Append To List    ${answer}    ${temp}
+    [Return]    ${answer}
+
+select random answer_oldStyle
+    Comment    ${no_of_answers}=    Get Matching Xpath Count    //div[@id="answerOptions"]/div
+    Comment    ${answer}=    Evaluate    random.randint(1,${no_of_answers})    random
+    Comment    Click Element    //div[@id="answerOptions"]/div[${answer}]
+    Click Element    //table[@class="maintable"]/tbody/tr[2]/td/table[2]/tbody/tr[2]
+
+Start Collecting Test Resources
+    [Arguments]    ${test_url}    ${test_full_name}    ${is_new_style}=True
+    Run Keyword If    ${is_new_style}==True    goto test site and start collecting test resources    ${test_url}    ${test_full_name}
+    ...    ELSE    goto test site and start collecting test resources_old style    ${test_url}    ${test_full_name}
+
+get the correct answer if the question is existed_oldStyle
+    [Arguments]    ${question}
+    select random answer_oldStyle
+    Wait Until Page Contains Element    //input[@id="btnnext"]    ${time_out}
+    Click Element    //input[@id="btnnext"]
